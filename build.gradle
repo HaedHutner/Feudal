@@ -1,0 +1,62 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.1'
+    id 'net.kyori.blossom' version '1.2.0'
+    id 'maven-publish'
+    id 'java'
+    id 'idea'
+    id 'org.spongepowered.gradle.plugin' version "0.11.0-SNAPSHOT"
+}
+
+group 'dev.haedhutner'
+version '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spongepowered.org/maven' }
+    maven { url 'https://repo.haedhutner.dev/releases' }
+    maven { url 'https://repo.haedhutner.dev/snapshot' }
+}
+
+dependencies {
+    annotationProcessor(shadow('org.spongepowered:spongeapi:7.4.+'))
+    shadow 'dev.haedhutner:HunterCore:latest.release'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.flowpowered:flow-math:1.0.3'
+}
+
+blossom {
+    replaceToken '%PROJECT_VERSION%', project.version
+}
+
+tasks.getByName("shadowJar").configure {
+    classifier = ""
+}
+
+publishing {
+    repositories {
+        maven {
+            version = project.hasProperty("release") ? project.version : project.version + "-SNAPSHOT";
+
+            def releasesRepoUrl = "https://repo.haedhutner.dev/releases"
+            def snapshotsRepoUrl = "https://repo.haedhutner.dev/snapshots"
+            url = project.hasProperty("release") ? releasesRepoUrl : snapshotsRepoUrl
+            credentials(PasswordCredentials) {
+                username = project.properties.getOrDefault("repoUploadAlias", "none")
+                password = project.properties.getOrDefault("repoUploadToken", "none")
+            }
+        }
+    }
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+        }
+    }
+}
